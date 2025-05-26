@@ -1,13 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from '../components/LandingPage';
+import HostDashboard from '../components/HostDashboard';
+import PlayerLobby from '../components/PlayerLobby';
+import SoloQuiz from '../components/SoloQuiz';
+import MultiplayerQuiz from '../components/MultiplayerQuiz';
+import QuizResults from '../components/QuizResults';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/host" element={<HostDashboard />} />
+          <Route path="/join" element={<PlayerLobby />} />
+          <Route path="/solo/:quizId" element={<SoloQuiz />} />
+          <Route path="/multiplayer/:sessionId" element={<MultiplayerQuiz />} />
+          <Route path="/results/:sessionId" element={<QuizResults />} />
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 };
 
