@@ -17,49 +17,101 @@ export interface QuizSession {
 // Using Open Trivia Database API as it's free and doesn't require API key
 const TRIVIA_API_BASE = 'https://opentdb.com/api.php';
 
+// Store used question IDs to avoid repeats
+const usedQuestionIds = new Set<string>();
+
+// Available categories for variety
+const CATEGORIES = [
+  9,   // General Knowledge
+  10,  // Entertainment: Books
+  11,  // Entertainment: Film
+  12,  // Entertainment: Music
+  17,  // Science & Nature
+  18,  // Science: Computers
+  19,  // Science: Mathematics
+  20,  // Mythology
+  21,  // Sports
+  22,  // Geography
+  23,  // History
+  27   // Animals
+];
+
+// Difficulty levels
+const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
 export const fetchQuestions = async (amount: number = 10, category?: string, difficulty?: string): Promise<Question[]> => {
-  try {
-    let url = `${TRIVIA_API_BASE}?amount=${amount}&type=multiple`;
-    
-    if (category) {
-      url += `&category=${category}`;
-    }
-    
-    if (difficulty) {
-      url += `&difficulty=${difficulty}`;
-    }
+  const questions: Question[] = [];
+  let attempts = 0;
+  const maxAttempts = 5;
 
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.response_code !== 0) {
-      throw new Error('Failed to fetch questions from API');
-    }
+  while (questions.length < amount && attempts < maxAttempts) {
+    try {
+      // Randomize category and difficulty for variety
+      const randomCategory = category || CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+      const randomDifficulty = difficulty || DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)];
+      
+      let url = `${TRIVIA_API_BASE}?amount=${Math.min(amount - questions.length, 10)}&type=multiple`;
+      url += `&category=${randomCategory}`;
+      url += `&difficulty=${randomDifficulty}`;
 
-    // Transform API response to our Question format
-    return data.results.map((item: any, index: number) => {
-      const incorrectAnswers = item.incorrect_answers;
-      const correctAnswer = item.correct_answer;
+      console.log(`Fetching questions: category=${randomCategory}, difficulty=${randomDifficulty}`);
+
+      const response = await fetch(url);
+      const data = await response.json();
       
-      // Randomly place correct answer among options
-      const correctIndex = Math.floor(Math.random() * 4);
-      const options = [...incorrectAnswers];
-      options.splice(correctIndex, 0, correctAnswer);
-      
-      return {
-        id: `q_${Date.now()}_${index}`,
-        text: decodeHtmlEntities(item.question),
-        options: options.map((option: string) => decodeHtmlEntities(option)),
-        correctAnswer: correctIndex,
-        category: item.category,
-        difficulty: item.difficulty
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching questions:', error);
-    // Fallback to mock questions if API fails
-    return getFallbackQuestions();
+      if (data.response_code !== 0) {
+        console.warn(`API response code: ${data.response_code}, trying fallback...`);
+        attempts++;
+        continue;
+      }
+
+      // Transform API response to our Question format
+      const newQuestions = data.results
+        .map((item: any, index: number) => {
+          const questionId = `${item.question}_${randomCategory}_${randomDifficulty}`;
+          
+          // Skip if we've used this question before
+          if (usedQuestionIds.has(questionId)) {
+            return null;
+          }
+
+          usedQuestionIds.add(questionId);
+
+          const incorrectAnswers = item.incorrect_answers;
+          const correctAnswer = item.correct_answer;
+          
+          // Randomly place correct answer among options
+          const correctIndex = Math.floor(Math.random() * 4);
+          const options = [...incorrectAnswers];
+          options.splice(correctIndex, 0, correctAnswer);
+          
+          return {
+            id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            text: decodeHtmlEntities(item.question),
+            options: options.map((option: string) => decodeHtmlEntities(option)),
+            correctAnswer: correctIndex,
+            category: item.category,
+            difficulty: item.difficulty
+          };
+        })
+        .filter(Boolean);
+
+      questions.push(...newQuestions);
+      attempts++;
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      attempts++;
+    }
   }
+
+  // If we still don't have enough questions, add fallback questions
+  if (questions.length < amount) {
+    const fallbackNeeded = amount - questions.length;
+    const fallbackQuestions = getFallbackQuestions().slice(0, fallbackNeeded);
+    questions.push(...fallbackQuestions);
+  }
+
+  return questions;
 };
 
 // Helper function to decode HTML entities
@@ -69,7 +121,7 @@ const decodeHtmlEntities = (text: string): string => {
   return textarea.value;
 };
 
-// Fallback questions if API fails
+// Enhanced fallback questions with varied difficulty
 const getFallbackQuestions = (): Question[] => [
   {
     id: 'fallback_1',
@@ -89,11 +141,27 @@ const getFallbackQuestions = (): Question[] => [
   },
   {
     id: 'fallback_3',
-    text: 'What is 2 + 2?',
-    options: ['3', '4', '5', '6'],
+    text: 'What is the largest mammal in the world?',
+    options: ['African Elephant', 'Blue Whale', 'Giraffe', 'Polar Bear'],
     correctAnswer: 1,
-    category: 'Mathematics',
-    difficulty: 'easy'
+    category: 'Animals',
+    difficulty: 'medium'
+  },
+  {
+    id: 'fallback_4',
+    text: 'In which year did World War II end?',
+    options: ['1944', '1945', '1946', '1947'],
+    correctAnswer: 1,
+    category: 'History',
+    difficulty: 'medium'
+  },
+  {
+    id: 'fallback_5',
+    text: 'What is the chemical symbol for gold?',
+    options: ['Go', 'Gd', 'Au', 'Ag'],
+    correctAnswer: 2,
+    category: 'Science',
+    difficulty: 'hard'
   }
 ];
 
@@ -105,4 +173,9 @@ export const createQuizSession = async (questionCount: number = 10): Promise<Qui
     questions,
     createdAt: new Date().toISOString()
   };
+};
+
+// Function to clear used questions (useful for testing)
+export const clearUsedQuestions = () => {
+  usedQuestionIds.clear();
 };
