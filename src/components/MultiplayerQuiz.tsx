@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Users, Crown, Clock, Trophy } from 'lucide-react';
+import { ArrowLeft, Users, Crown, Clock, Trophy, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { fetchQuestions, Question } from '../services/questionApi';
 
 interface Player {
   id: string;
@@ -17,7 +17,8 @@ interface Player {
 const MultiplayerQuiz = () => {
   const navigate = useNavigate();
   const { sessionId } = useParams();
-  const [gameState, setGameState] = useState<'waiting' | 'playing' | 'results'>('waiting');
+  const [gameState, setGameState] = useState<'loading' | 'waiting' | 'playing' | 'results'>('loading');
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -28,18 +29,23 @@ const MultiplayerQuiz = () => {
     { id: '4', name: 'Charlie', score: 0, isHost: false }
   ]);
 
-  const mockQuestions = [
-    {
-      text: 'What is the capital of France?',
-      options: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correctAnswer: 2
-    },
-    {
-      text: 'Which planet is known as the Red Planet?',
-      options: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
-      correctAnswer: 1
-    }
-  ];
+  // Load questions from API on component mount
+  useEffect(() => {
+    const loadQuestions = async () => {
+      console.log('Loading questions from API...');
+      try {
+        const apiQuestions = await fetchQuestions(5); // Get 5 questions for demo
+        setQuestions(apiQuestions);
+        setGameState('waiting');
+        console.log('Questions loaded:', apiQuestions);
+      } catch (error) {
+        console.error('Failed to load questions:', error);
+        setGameState('waiting'); // Continue with fallback questions
+      }
+    };
+
+    loadQuestions();
+  }, []);
 
   // Mock game start after 3 seconds in waiting
   useEffect(() => {
@@ -59,7 +65,7 @@ const MultiplayerQuiz = () => {
     } else if (timeLeft === 0 && gameState === 'playing') {
       // Auto submit and show results
       setTimeout(() => {
-        if (currentQuestion + 1 < mockQuestions.length) {
+        if (currentQuestion + 1 < questions.length) {
           setCurrentQuestion(currentQuestion + 1);
           setSelectedAnswer(null);
           setTimeLeft(30);
@@ -68,7 +74,7 @@ const MultiplayerQuiz = () => {
         }
       }, 2000);
     }
-  }, [timeLeft, gameState, currentQuestion]);
+  }, [timeLeft, gameState, currentQuestion, questions.length]);
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (selectedAnswer !== null) return;
@@ -76,7 +82,7 @@ const MultiplayerQuiz = () => {
     setSelectedAnswer(answerIndex);
     
     // Update scores (mock)
-    if (answerIndex === mockQuestions[currentQuestion].correctAnswer) {
+    if (answerIndex === questions[currentQuestion].correctAnswer) {
       setPlayers(prev => prev.map(p => 
         p.id === '1' ? { ...p, score: p.score + 1 } : p
       ));
@@ -90,6 +96,20 @@ const MultiplayerQuiz = () => {
     }, 1000);
   };
 
+  if (gameState === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm">
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Loading Quiz Questions</h3>
+            <p className="text-gray-600 text-center">Fetching questions from our database...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (gameState === 'waiting') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -100,6 +120,7 @@ const MultiplayerQuiz = () => {
             </div>
             <CardTitle className="text-2xl">Waiting for Game to Start</CardTitle>
             <p className="text-gray-600">Session Code: <span className="font-mono font-bold">{sessionId?.slice(-6).toUpperCase()}</span></p>
+            <p className="text-sm text-green-600 mt-2">✓ {questions.length} questions loaded</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -185,7 +206,23 @@ const MultiplayerQuiz = () => {
     );
   }
 
-  const currentQ = mockQuestions[currentQuestion];
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm">
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <h3 className="text-lg font-semibold mb-2 text-red-600">No Questions Available</h3>
+            <p className="text-gray-600 text-center mb-4">Unable to load quiz questions.</p>
+            <Button onClick={() => navigate('/join')}>
+              Back to Lobby
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const currentQ = questions[currentQuestion];
 
   return (
     <div className="min-h-screen p-4">
@@ -202,7 +239,7 @@ const MultiplayerQuiz = () => {
           </Button>
           <h1 className="text-2xl font-bold text-white">Multiplayer Quiz</h1>
           <div className="text-white/80">
-            Question {currentQuestion + 1} / {mockQuestions.length}
+            Question {currentQuestion + 1} / {questions.length}
           </div>
         </div>
 
@@ -222,6 +259,19 @@ const MultiplayerQuiz = () => {
             {/* Question */}
             <Card className="bg-white/95 backdrop-blur-sm">
               <CardContent className="p-8">
+                <div className="mb-4">
+                  {currentQ.category && (
+                    <Badge variant="secondary" className="mb-2">
+                      {currentQ.category}
+                    </Badge>
+                  )}
+                  {currentQ.difficulty && (
+                    <Badge variant="outline" className="ml-2">
+                      {currentQ.difficulty}
+                    </Badge>
+                  )}
+                </div>
+                
                 <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">
                   {currentQ.text}
                 </h2>
