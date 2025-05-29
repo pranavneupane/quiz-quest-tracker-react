@@ -1,74 +1,54 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, Trophy, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Trophy, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-
-interface Question {
-  id: string;
-  text: string;
-  options: string[];
-  correctAnswer: number;
-}
+import { fetchQuestions, Question } from '../services/questionApi';
 
 const SoloQuiz = () => {
   const navigate = useNavigate();
   const { quizId } = useParams();
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock quiz data
-  const quizData = {
-    title: 'General Knowledge Challenge',
-    questions: [
-      {
-        id: '1',
-        text: 'What is the capital of France?',
-        options: ['London', 'Berlin', 'Paris', 'Madrid'],
-        correctAnswer: 2
-      },
-      {
-        id: '2',
-        text: 'Which planet is known as the Red Planet?',
-        options: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
-        correctAnswer: 1
-      },
-      {
-        id: '3',
-        text: 'What is 2 + 2 × 3?',
-        options: ['8', '10', '12', '6'],
-        correctAnswer: 0
-      },
-      {
-        id: '4',
-        text: 'Who painted the Mona Lisa?',
-        options: ['Van Gogh', 'Picasso', 'Da Vinci', 'Monet'],
-        correctAnswer: 2
-      },
-      {
-        id: '5',
-        text: 'What is the largest ocean on Earth?',
-        options: ['Atlantic', 'Indian', 'Arctic', 'Pacific'],
-        correctAnswer: 3
+  // Fetch questions on component mount
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching unique questions for solo quiz...');
+        const fetchedQuestions = await fetchQuestions(5); // 5 questions per quiz
+        setQuestions(fetchedQuestions);
+        console.log('Questions loaded:', fetchedQuestions);
+      } catch (err) {
+        console.error('Error loading questions:', err);
+        setError('Failed to load questions. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    ]
-  };
+    };
+
+    loadQuestions();
+  }, []);
 
   // Timer effect
   useEffect(() => {
-    if (timeLeft > 0 && !showResult && !quizCompleted) {
+    if (timeLeft > 0 && !showResult && !quizCompleted && !loading) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !showResult) {
+    } else if (timeLeft === 0 && !showResult && !loading) {
       handleTimeUp();
     }
-  }, [timeLeft, showResult, quizCompleted]);
+  }, [timeLeft, showResult, quizCompleted, loading]);
 
   const handleTimeUp = () => {
     setShowResult(true);
@@ -81,7 +61,7 @@ const SoloQuiz = () => {
     if (selectedAnswer !== null) return;
     
     setSelectedAnswer(answerIndex);
-    const isCorrect = answerIndex === quizData.questions[currentQuestion].correctAnswer;
+    const isCorrect = answerIndex === questions[currentQuestion].correctAnswer;
     
     if (isCorrect) {
       setScore(score + 1);
@@ -94,7 +74,7 @@ const SoloQuiz = () => {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestion + 1 < quizData.questions.length) {
+    if (currentQuestion + 1 < questions.length) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(null);
       setShowResult(false);
@@ -108,22 +88,55 @@ const SoloQuiz = () => {
     const baseClass = "w-full p-4 text-left rounded-xl transition-all duration-300 cursor-pointer";
     
     if (!showResult) {
-      return `${baseClass} bg-white hover:bg-purple-50 border-2 border-gray-200 hover:border-purple-300`;
+      return `${baseClass} bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300`;
     }
     
-    if (optionIndex === quizData.questions[currentQuestion].correctAnswer) {
+    if (optionIndex === questions[currentQuestion].correctAnswer) {
       return `${baseClass} bg-green-100 border-2 border-green-500 text-green-800`;
     }
     
-    if (selectedAnswer === optionIndex && optionIndex !== quizData.questions[currentQuestion].correctAnswer) {
+    if (selectedAnswer === optionIndex && optionIndex !== questions[currentQuestion].correctAnswer) {
       return `${baseClass} bg-red-100 border-2 border-red-500 text-red-800`;
     }
     
     return `${baseClass} bg-gray-100 border-2 border-gray-300 text-gray-500`;
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-blue-500" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading Quiz...</h2>
+            <p className="text-gray-600">Fetching unique questions for you</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <XCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => navigate('/join')}>
+              Back to Quiz Selection
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (quizCompleted) {
-    const percentage = Math.round((score / quizData.questions.length) * 100);
+    const percentage = Math.round((score / questions.length) * 100);
     
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -133,9 +146,9 @@ const SoloQuiz = () => {
               <Trophy className="w-10 h-10 text-white" />
             </div>
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Quiz Complete!</h2>
-            <div className="text-6xl font-bold text-purple-600 mb-2">{percentage}%</div>
+            <div className="text-6xl font-bold text-blue-600 mb-2">{percentage}%</div>
             <p className="text-gray-600 text-lg mb-6">
-              {score} out of {quizData.questions.length} correct
+              {score} out of {questions.length} correct
             </p>
             <div className="space-y-3">
               <Button 
@@ -158,7 +171,7 @@ const SoloQuiz = () => {
     );
   }
 
-  const currentQ = quizData.questions[currentQuestion];
+  const currentQ = questions[currentQuestion];
 
   return (
     <div className="min-h-screen p-4">
@@ -173,16 +186,18 @@ const SoloQuiz = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white">{quizData.title}</h1>
+          <h1 className="text-2xl font-bold text-white">
+            {currentQ?.category || 'Quiz Challenge'}
+          </h1>
           <div className="text-white/80">
-            {currentQuestion + 1} / {quizData.questions.length}
+            {currentQuestion + 1} / {questions.length}
           </div>
         </div>
 
         {/* Progress */}
         <div className="mb-6">
           <Progress 
-            value={((currentQuestion + 1) / quizData.questions.length) * 100} 
+            value={((currentQuestion + 1) / questions.length) * 100} 
             className="h-2"
           />
         </div>
@@ -200,12 +215,22 @@ const SoloQuiz = () => {
         {/* Question Card */}
         <Card className="bg-white/95 backdrop-blur-sm mb-6">
           <CardContent className="p-8">
+            <div className="mb-4 text-center">
+              <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                currentQ?.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                currentQ?.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {currentQ?.difficulty || 'Unknown'} difficulty
+              </span>
+            </div>
+            
             <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">
-              {currentQ.text}
+              {currentQ?.text}
             </h2>
             
             <div className="grid gap-4">
-              {currentQ.options.map((option, index) => (
+              {currentQ?.options.map((option, index) => (
                 <button
                   key={index}
                   onClick={() => handleAnswerSelect(index)}
@@ -250,7 +275,7 @@ const SoloQuiz = () => {
         <div className="text-center">
           <div className="inline-flex items-center gap-2 bg-white/20 text-white px-6 py-3 rounded-full backdrop-blur-sm">
             <Trophy className="w-5 h-5" />
-            <span className="font-bold">Score: {score}/{quizData.questions.length}</span>
+            <span className="font-bold">Score: {score}/{questions.length}</span>
           </div>
         </div>
       </div>
