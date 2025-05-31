@@ -60,7 +60,7 @@ const SoloQuiz = () => {
             variant="ghost" 
             size="icon"
             onClick={() => navigate('/join')}
-            className="text-white hover:bg-white/20"
+            className="text-black hover:bg-black/10"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
