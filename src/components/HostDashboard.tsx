@@ -1,10 +1,11 @@
-
 import React, { useState } from 'react';
 import QuizCreator from './QuizCreator';
 import HostDashboardHeader from './host/HostDashboardHeader';
 import HostDashboardStats from './host/HostDashboardStats';
 import QuizList from './host/QuizList';
+import TeamCode from './host/TeamCode';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Quiz {
   id: string;
@@ -75,7 +76,23 @@ const HostDashboard = () => {
       <div className="max-w-7xl mx-auto">
         <HostDashboardHeader onCreateQuiz={handleCreateQuiz} />
         <HostDashboardStats quizzes={quizzes} />
-        <QuizList quizzes={quizzes} />
+        
+        <Tabs defaultValue="quizzes" className="mt-8">
+          <TabsList className="mb-6">
+            <TabsTrigger value="quizzes">My Quizzes</TabsTrigger>
+            <TabsTrigger value="multiplayer">Team Code Multiplayer</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="quizzes">
+            <QuizList quizzes={quizzes} />
+          </TabsContent>
+          
+          <TabsContent value="multiplayer">
+            <div className="max-w-2xl mx-auto">
+              <TeamCode />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
