@@ -71,13 +71,13 @@ const PlayerLobby = () => {
             variant="ghost" 
             size="icon"
             onClick={() => navigate('/')}
-            className="text-white hover:bg-white/20"
+            className="text-black hover:bg-black/10"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-white">Player Lobby</h1>
-            <p className="text-white/80">Choose your quiz adventure</p>
+            <h1 className="text-3xl font-bold text-black">Player Lobby</h1>
+            <p className="text-black/70">Choose your quiz adventure</p>
           </div>
         </div>
 
