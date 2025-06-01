@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Users, Crown, Clock, Trophy, Loader2 } from 'lucide-react';
@@ -237,12 +236,13 @@ const MultiplayerQuiz = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white">Multiplayer Quiz</h1>
+          <h1 className="text-2xl font-bold text-black">Multiplayer Quiz</h1>
           <div className="text-white/80">
             Question {currentQuestion + 1} / {questions.length}
           </div>
         </div>
 
+        {/* Main Question Area */}
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Main Question Area */}
           <div className="lg:col-span-3">
