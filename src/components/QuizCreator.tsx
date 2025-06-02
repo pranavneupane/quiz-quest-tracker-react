@@ -280,21 +280,26 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({ onBack, onSave }) => {
               </div>
               
               <div className="space-y-2">
-                <Label>Answer Options</Label>
-                {currentQuestion.options?.map((option, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <RadioGroupItem 
-                      value={index.toString()} 
-                      checked={currentQuestion.correctAnswer === index}
-                      onClick={() => setCurrentQuestion(prev => ({ ...prev, correctAnswer: index }))}
-                    />
-                    <Input
-                      value={option}
-                      onChange={(e) => updateCurrentOption(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
-                    />
-                  </div>
-                ))}
+                <Label>Answer Options (Select correct answer)</Label>
+                <RadioGroup 
+                  value={currentQuestion.correctAnswer?.toString() || "0"} 
+                  onValueChange={(value) => setCurrentQuestion(prev => ({ ...prev, correctAnswer: parseInt(value) }))}
+                >
+                  {currentQuestion.options?.map((option, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                      <Input
+                        value={option}
+                        onChange={(e) => updateCurrentOption(index, e.target.value)}
+                        placeholder={`Option ${index + 1}`}
+                        className="flex-1"
+                      />
+                      <Label htmlFor={`option-${index}`} className="text-xs text-gray-500">
+                        {index === currentQuestion.correctAnswer ? 'Correct' : ''}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               </div>
 
               <Button 
