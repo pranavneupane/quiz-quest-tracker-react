@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuizLogic } from '../hooks/useQuizLogic';
 import QuizLoadingError from './quiz/QuizLoadingError';
@@ -23,7 +23,8 @@ const SoloQuiz = () => {
     quizCompleted,
     loading,
     error,
-    handleAnswerSelect
+    handleAnswerSelect,
+    handleSkipQuestion
   } = useQuizLogic();
 
   // Loading or error states
@@ -70,6 +71,16 @@ const SoloQuiz = () => {
             totalQuestions={questions.length}
             category={currentQ?.category}
           />
+          
+          <Button 
+            variant="outline" 
+            onClick={handleSkipQuestion}
+            disabled={selectedAnswer !== null}
+            className="text-sm"
+          >
+            <SkipForward className="w-4 h-4 mr-2" />
+            Skip
+          </Button>
         </div>
 
         {/* Timer */}

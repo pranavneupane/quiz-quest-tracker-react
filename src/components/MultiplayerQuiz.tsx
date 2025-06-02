@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Users, Crown, Clock, Trophy, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Crown, Clock, Trophy, Loader2, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ const MultiplayerQuiz = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(20); // Changed to 20 seconds
   const [players, setPlayers] = useState<Player[]>([
     { id: '1', name: 'You', score: 0, isHost: false },
     { id: '2', name: 'Alice', score: 0, isHost: true },
@@ -67,7 +68,7 @@ const MultiplayerQuiz = () => {
         if (currentQuestion + 1 < questions.length) {
           setCurrentQuestion(currentQuestion + 1);
           setSelectedAnswer(null);
-          setTimeLeft(30);
+          setTimeLeft(20); // Reset to 20 seconds
         } else {
           setGameState('results');
         }
@@ -92,6 +93,19 @@ const MultiplayerQuiz = () => {
       setPlayers(prev => prev.map(p => 
         p.id !== '1' ? { ...p, score: p.score + Math.floor(Math.random() * 2) } : p
       ));
+    }, 1000);
+  };
+
+  const handleSkipQuestion = () => {
+    setSelectedAnswer(-1); // Use -1 to indicate skipped
+    setTimeout(() => {
+      if (currentQuestion + 1 < questions.length) {
+        setCurrentQuestion(currentQuestion + 1);
+        setSelectedAnswer(null);
+        setTimeLeft(20);
+      } else {
+        setGameState('results');
+      }
     }, 1000);
   };
 
@@ -237,8 +251,19 @@ const MultiplayerQuiz = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-2xl font-bold text-black">Multiplayer Quiz</h1>
-          <div className="text-white/80">
-            Question {currentQuestion + 1} / {questions.length}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleSkipQuestion}
+              disabled={selectedAnswer !== null}
+              className="text-sm"
+            >
+              <SkipForward className="w-4 h-4 mr-2" />
+              Skip
+            </Button>
+            <div className="text-white/80">
+              Question {currentQuestion + 1} / {questions.length}
+            </div>
           </div>
         </div>
 
@@ -249,7 +274,7 @@ const MultiplayerQuiz = () => {
             {/* Timer */}
             <div className="flex justify-center mb-6">
               <div className={`flex items-center gap-2 px-6 py-3 rounded-full text-white font-bold text-xl ${
-                timeLeft <= 10 ? 'bg-red-500' : 'bg-blue-500'
+                timeLeft <= 5 ? 'bg-red-500' : timeLeft <= 10 ? 'bg-orange-500' : 'bg-blue-500'
               }`}>
                 <Clock className="w-6 h-6" />
                 {timeLeft}s

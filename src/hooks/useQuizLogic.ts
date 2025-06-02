@@ -8,7 +8,7 @@ export const useQuizLogic = () => {
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(20); // Changed to 20 seconds
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,12 +66,19 @@ export const useQuizLogic = () => {
     }, 2000);
   };
 
+  const handleSkipQuestion = () => {
+    setShowResult(true);
+    setTimeout(() => {
+      handleNextQuestion();
+    }, 1000);
+  };
+
   const handleNextQuestion = () => {
     if (currentQuestion + 1 < questions.length) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(null);
       setShowResult(false);
-      setTimeLeft(30);
+      setTimeLeft(20); // Reset to 20 seconds
     } else {
       setQuizCompleted(true);
     }
@@ -87,6 +94,7 @@ export const useQuizLogic = () => {
     quizCompleted,
     loading,
     error,
-    handleAnswerSelect
+    handleAnswerSelect,
+    handleSkipQuestion
   };
 };
