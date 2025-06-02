@@ -1,12 +1,16 @@
 
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Users, Timer, Zap, SkipForward, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface Question {
   id: string;
@@ -16,12 +20,20 @@ interface Question {
   type: 'multiple-choice' | 'true-false';
 }
 
+interface GameSettings {
+  maxPlayers: number;
+  timerPerQuestion: number;
+  multiplierEnabled: boolean;
+  skipAllowed: boolean;
+}
+
 interface QuizCreatorProps {
   onBack: () => void;
   onSave: (quiz: any) => void;
 }
 
 const QuizCreator: React.FC<QuizCreatorProps> = ({ onBack, onSave }) => {
+  const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -32,6 +44,14 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({ onBack, onSave }) => {
     options: ['', '', '', ''],
     correctAnswer: 0,
     type: 'multiple-choice'
+  });
+  
+  // Game settings
+  const [gameSettings, setGameSettings] = useState<GameSettings>({
+    maxPlayers: 4,
+    timerPerQuestion: 20,
+    multiplierEnabled: true,
+    skipAllowed: true
   });
 
   const addQuestion = () => {
@@ -72,9 +92,15 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({ onBack, onSave }) => {
     }
   };
 
+  const generateGameCode = () => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Navigate to custom multiplayer with the generated code
+    navigate(`/custom-quiz/${code}`);
+  };
+
   return (
     <div className="min-h-screen p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -87,21 +113,31 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({ onBack, onSave }) => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-white">Create Quiz</h1>
-              <p className="text-white/80">Design your custom quiz</p>
+              <h1 className="text-3xl font-bold text-white">Create Custom Quiz</h1>
+              <p className="text-white/80">Design your quiz and start multiplayer game</p>
             </div>
           </div>
-          <Button 
-            onClick={saveQuiz}
-            className="bg-white text-purple-600 hover:bg-white/90"
-            disabled={!title || !description || questions.length === 0}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save Quiz
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={saveQuiz}
+              variant="outline"
+              disabled={!title || !description || questions.length === 0}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Quiz
+            </Button>
+            <Button 
+              onClick={generateGameCode}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={!title || !description || questions.length === 0}
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Start Multiplayer
+            </Button>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6">
           {/* Quiz Details */}
           <Card className="bg-white/95 backdrop-blur-sm">
             <CardHeader>
@@ -151,6 +187,78 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({ onBack, onSave }) => {
                     <Label htmlFor="hard">Hard</Label>
                   </div>
                 </RadioGroup>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Game Settings */}
+          <Card className="bg-white/95 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Multiplayer Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4" />
+                  Maximum Players
+                </Label>
+                <Select 
+                  value={gameSettings.maxPlayers.toString()} 
+                  onValueChange={(value) => setGameSettings(prev => ({ ...prev, maxPlayers: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">2 Players</SelectItem>
+                    <SelectItem value="3">3 Players</SelectItem>
+                    <SelectItem value="4">4 Players</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <Timer className="w-4 h-4" />
+                  Timer per Question
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{gameSettings.timerPerQuestion}s</span>
+                  <Badge variant="outline">Fixed at 20s</Badge>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Score Multiplier
+                </Label>
+                <Switch
+                  checked={gameSettings.multiplierEnabled}
+                  onCheckedChange={(checked) => setGameSettings(prev => ({ ...prev, multiplierEnabled: checked }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <SkipForward className="w-4 h-4" />
+                  Allow Skip (Once per player)
+                </Label>
+                <Switch
+                  checked={gameSettings.skipAllowed}
+                  onCheckedChange={(checked) => setGameSettings(prev => ({ ...prev, skipAllowed: checked }))}
+                />
+              </div>
+
+              <div className="pt-4 border-t">
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>• Only human players can join</p>
+                  <p>• Host controls question timing</p>
+                  <p>• Real-time competitive scoring</p>
+                </div>
               </div>
             </CardContent>
           </Card>
