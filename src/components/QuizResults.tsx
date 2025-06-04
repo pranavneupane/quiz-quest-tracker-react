@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 const QuizResults = () => {
   const navigate = useNavigate();
   const { sessionId } = useParams();
-
+  
+//pranav
   const mockResults = {
     playerName: 'You',
     score: 8,
